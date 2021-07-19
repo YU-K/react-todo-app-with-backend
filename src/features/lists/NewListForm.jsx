@@ -1,13 +1,16 @@
 // @ts-check
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Formik, Field, Form } from 'formik';
 import axios from 'axios';
-
+import * as Yup from 'yup';
+import cn from 'classnames';
+import { toast } from 'react-toastify';
 import { BsCheck } from 'react-icons/bs';
 
 import { listsActions, listsSelectors } from './listsSlice';
+import { setCurrentListId } from '../../store/currentListIdSlice';
 import routes from '../../api/routes.js';
 import * as Yup from 'yup';
 import cn from 'classnames';
@@ -18,18 +21,17 @@ const NewListForm = () => {
   const addList = async ({ text }, { resetForm }) => {
     try {
       const url = routes.lists();
-      const response = await axios.post(url, { name: text });
-      dispatch(listsActions.add(response.data));
+      const { data } = await axios.post(url, { name: text });
+      dispatch(listsActions.add(data));
+      dispatch(setCurrentListId(data.id));
       resetForm();
     } catch (error) {
-      console.log(error);
+      toast('Network error');
     }
   };
 
   const lists = useSelector(listsSelectors.selectAll);
-  const listsNames = useMemo(() => {
-    return lists.map((i) => i.name);
-  }, [lists]);
+  const listsNames = lists.map((i) => i.name);
 
   const validationSchema = Yup.object().shape({
     text: Yup.string().required().notOneOf(listsNames),
@@ -45,19 +47,21 @@ const NewListForm = () => {
       validateOnChange={false}
     >
       {({ values, isSubmitting, errors, isValid, touched }) => (
-        <Form className="form mb-3">
+        <Form className="form mb-3" data-testid="list-form">
+          <label className="visually-hidden" htmlFor="new-list">
+            New list
+          </label>
           <div className="input-group">
             <Field
               type="text"
               name="text"
               value={values.text}
-              className={cn('form-control', !!touched.text && (isValid ? 'is-valid' : 'is-invalid'))}
-                'is-valid': isValid && touched.text,
-                'is-invalid': !isValid && touched.text,
-              })}
+              className={cn(
+                'form-control',
+                !!touched.text && (isValid ? 'is-valid' : 'is-invalid')
+              )}
               placeholder="List name..."
               readOnly={isSubmitting}
-              required
               id="new-list"
             />
             <button
@@ -66,6 +70,7 @@ const NewListForm = () => {
               disabled={isSubmitting || !values.text.trim()}
             >
               <BsCheck />
+              <span className="visually-hidden">add list</span>
             </button>
             {errors.text && (
               <div className="invalid-feedback">{errors.text}</div>

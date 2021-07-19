@@ -5,7 +5,7 @@ import React, { useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import axios from 'axios';
 import cn from 'classnames';
-
+import { toast } from 'react-toastify';
 import { BsX } from 'react-icons/bs';
 
 import {
@@ -13,9 +13,9 @@ import {
   selectCurrentListId,
 } from '../../store/currentListIdSlice.js';
 import { listsActions } from './listsSlice.js';
-
 import routes from '../../api/routes.js';
 
+const defaultListId = 1; // TODO move to config or context or whatever
 const listStates = {
   idle: 'idle',
   loading: 'loading',
@@ -41,10 +41,11 @@ const List = ({ list }) => {
       await axios.delete(url);
       setState(listStates.idle);
       dispatch(listsActions.remove(list.id));
+      dispatch(setCurrentListId(defaultListId));
     } catch (err) {
       setState(listStates.idle);
       buttonRef.current?.focus();
-      console.log(err);
+      toast('Network error');
     }
   };
 
@@ -56,7 +57,7 @@ const List = ({ list }) => {
 
   return (
     <div className="d-flex justify-content-between align-items-start">
-      <button onClick={setCurrent} className={currentClass}>
+      <button onClick={setCurrent} className={currentClass} type="button">
         {list.name}
       </button>
       {list.removable && (
@@ -65,8 +66,10 @@ const List = ({ list }) => {
           className="btn link-danger"
           disabled={state === listStates.loading}
           ref={buttonRef}
+          type="button"
         >
           <BsX />
+          <span className="visually-hidden">remove list</span>
         </button>
       )}
     </div>
